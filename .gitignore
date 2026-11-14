@@ -1,0 +1,13 @@
+# Xcode / XcodeGen (el proyecto se genera en la nube)
+Alarma.xcodeproj/
+Alarma/Info.plist
+build/
+DerivedData/
+Payload/
+*.ipa
+xcuserdata/
+.DS_Store
+
+# Skills de diseño instaladas localmente
+.claude/skills/
+.claude/settings.local.json

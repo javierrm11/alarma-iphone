@@ -1,0 +1,80 @@
+name: Compilar IPA
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-ipa
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: macos-26
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Elegir la versión más reciente de Xcode 26
+        run: |
+          XCODE=$(ls -d /Applications/Xcode_26*.app | sort -V | tail -1)
+          echo "Usando $XCODE"
+          sudo xcode-select -s "$XCODE"
+          xcodebuild -version
+
+      - name: Instalar XcodeGen
+        run: brew install xcodegen
+
+      - name: Generar el proyecto de Xcode
+        run: xcodegen generate
+
+      - name: Compilar (sin firmar)
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -project Alarma.xcodeproj \
+            -scheme Alarma \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            build | tee xcodebuild.log | grep -E "error:|warning: .*deprecated|\*\* BUILD" || true
+          test -d build/Build/Products/Release-iphoneos/Alarma.app
+
+      - name: Empaquetar Alarma.ipa
+        run: |
+          rm -rf Payload Alarma.ipa
+          mkdir Payload
+          cp -R build/Build/Products/Release-iphoneos/Alarma.app Payload/
+          zip -qry Alarma.ipa Payload
+          ls -lh Alarma.ipa
+
+      - name: Subir como artefacto
+        uses: actions/upload-artifact@v4
+        with:
+          name: Alarma-ipa
+          path: Alarma.ipa
+
+      - name: Publicar en la release "latest"
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete latest --yes --cleanup-tag || true
+          gh release create latest Alarma.ipa \
+            --title "Última compilación" \
+            --notes "Compilado desde ${GITHUB_SHA::7}. Instálalo con SideStore o Sideloadly." \
+            --target "$GITHUB_SHA"
+
+      - name: Guardar el log si falla
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xcodebuild-log
+          path: xcodebuild.log

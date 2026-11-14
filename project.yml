@@ -1,0 +1,52 @@
+name: Alarma
+options:
+  bundleIdPrefix: es.pipo
+  deploymentTarget:
+    iOS: "26.1"
+  createIntermediateGroups: true
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    SWIFT_STRICT_CONCURRENCY: minimal
+    MARKETING_VERSION: "1.0.0"
+    CURRENT_PROJECT_VERSION: "1"
+    TARGETED_DEVICE_FAMILY: "1"
+    ENABLE_USER_SCRIPT_SANDBOXING: NO
+targets:
+  Alarma:
+    type: application
+    platform: iOS
+    sources:
+      - path: Alarma
+    info:
+      path: Alarma/Info.plist
+      properties:
+        CFBundleDisplayName: Pipo
+        CFBundleName: $(PRODUCT_NAME)
+        CFBundleIdentifier: $(PRODUCT_BUNDLE_IDENTIFIER)
+        CFBundleExecutable: $(EXECUTABLE_NAME)
+        CFBundlePackageType: APPL
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        CFBundleDevelopmentRegion: es
+        LSRequiresIPhoneOS: true
+        ITSAppUsesNonExemptEncryption: false
+        UILaunchScreen: {}
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: false
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+        UIUserInterfaceStyle: Light
+        NSAlarmKitUsageDescription: Pipo necesita programar alarmas que suenen aunque el móvil esté en silencio o bloqueado.
+        NSMotionUsageDescription: Pipo cuenta tus pasos para el reto de andar y comprobar que sigues despierto.
+        NSCameraUsageDescription: Pipo usa la cámara para escanear el código del reto y comparar la foto de referencia.
+    settings:
+      base:
+        PRODUCT_NAME: Alarma
+        PRODUCT_BUNDLE_IDENTIFIER: es.pipo.despertador
+        GENERATE_INFOPLIST_FILE: NO
+        CODE_SIGN_STYLE: Manual
+        CODE_SIGNING_ALLOWED: NO
+        CODE_SIGNING_REQUIRED: NO
+        CODE_SIGN_IDENTITY: ""
+        DEVELOPMENT_TEAM: ""
