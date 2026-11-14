@@ -148,6 +148,8 @@ struct ScheduledEntry: Codable, Hashable {
     var occurrence: Date
     var fire: Date
     var group: UUID?
+    /// Alarma extra creada al deslizar "detener" sin hacer el reto.
+    var isExtra: Bool? = nil
 
     var key: String {
         "\(alarmID.uuidString)|\(kind.rawValue)|\(Int(fire.timeIntervalSince1970))|\(group?.uuidString ?? "-")"
@@ -192,12 +194,14 @@ struct PersistedState: Codable {
     var equipped: Accessory?
     var onboardingDone = false
     var events: [String] = []
+    /// Versión de cómo se programan las alarmas (si cambia, se reprograman todas).
+    var scheduleVersion = 0
 
     init() {}
 
     enum CodingKeys: String, CodingKey {
         case alarms, scheduled, completedKeys, pendingChecks, records, savedCode
-        case photoThreshold, nightMessage, equipped, onboardingDone, events
+        case photoThreshold, nightMessage, equipped, onboardingDone, events, scheduleVersion
     }
 
     init(from decoder: Decoder) throws {
@@ -213,6 +217,7 @@ struct PersistedState: Codable {
         equipped = try? c.decodeIfPresent(Accessory.self, forKey: .equipped)
         onboardingDone = (try? c.decodeIfPresent(Bool.self, forKey: .onboardingDone)) ?? false
         events = (try? c.decodeIfPresent([String].self, forKey: .events)) ?? []
+        scheduleVersion = (try? c.decodeIfPresent(Int.self, forKey: .scheduleVersion)) ?? 0
     }
 }
 

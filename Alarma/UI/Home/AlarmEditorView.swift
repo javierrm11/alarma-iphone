@@ -205,7 +205,7 @@ struct AlarmEditorView: View {
             SectionLabel("Para no volver a dormirte")
             VStack(spacing: 0) {
                 Stepper(value: $draft.backupInterval, in: 1...10) {
-                    rowText("Respaldos cada \(draft.backupInterval) min", "Si la apagas sin el reto, vuelve a sonar")
+                    rowText("Respaldos cada \(draft.backupInterval) min", "Y si deslizas para detenerla sin el reto, vuelve a sonar a los 30 s")
                 }
                 .padding(.horizontal, 16).frame(minHeight: 60)
                 CardDivider()

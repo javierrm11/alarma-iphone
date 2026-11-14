@@ -8,7 +8,8 @@ Diseño: estilo **Compañeros**, gama **Caramelo**, con **Pipo** como personaje.
 
 - **Alarmas de verdad con AlarmKit**: suenan con el modo silencio, con Concentración y con el móvil bloqueado.
 - **Retos para apagarla**, encadenables: andar pasos, escanear un código registrado, cuentas o una foto igual a una de referencia.
-- **Respaldos**: si deslizas para detener sin hacer el reto, vuelve a sonar cada N minutos (2 por defecto, 15 veces).
+- **Respaldos**: si no haces el reto, vuelve a sonar cada N minutos (2 por defecto, 15 veces).
+- **Sin trampas al deslizar**: si deslizas para detener sin hacer el reto, vuelve a sonar a los 30 segundos (si iOS ejecuta la acción del botón de detener; si no, quedan los respaldos).
 - **¿Sigues despierto?**: a los 5 y a los 10 minutos de completar el reto. Si no respondes, vuelve a sonar.
 - **Modo estricto**: en las 10 horas antes de que suene, apagar, borrar o cambiar la alarma pide 8 cuentas.
 - **Progreso**: racha, minutos hasta completar el reto, respaldos que sonaron y accesorios de Pipo que se desbloquean con la racha.

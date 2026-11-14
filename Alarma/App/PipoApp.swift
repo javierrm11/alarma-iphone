@@ -3,7 +3,7 @@ import Combine
 
 @main
 struct PipoApp: App {
-    @State private var model = AppModel()
+    @State private var model = AppModel.shared
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some Scene {

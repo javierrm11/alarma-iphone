@@ -20,6 +20,9 @@ enum WakeRoute: Identifiable, Equatable {
 @MainActor
 @Observable
 final class AppModel {
+    /// Única instancia: la usan la interfaz y los botones de la alarma (que pueden ejecutarse sin abrir la app).
+    static let shared = AppModel()
+
     var state: PersistedState
     var route: WakeRoute?
     var alarmAuth: AlarmAuth = .unknown
@@ -31,6 +34,11 @@ final class AppModel {
     @ObservationIgnored private let scheduler = AlarmScheduler()
     @ObservationIgnored private var reconciling = false
     @ObservationIgnored private var reconcileAgain = false
+    /// Mañana (o comprobación) cuyo reto acabas de abrir: no hay que volver a sonar al callarla.
+    @ObservationIgnored private var challengeOpened: (key: String, at: Date)?
+
+    /// Si deslizas "detener" sin hacer el reto, vuelve a sonar a los 30 segundos.
+    static let reringDelay: TimeInterval = 30
 
     /// Las alarmas principales se programan con 7 días de antelación;
     /// los respaldos solo para lo que suene en las próximas 26 horas.
@@ -67,10 +75,25 @@ final class AppModel {
             Notifier.scheduleSigningReminder(expiry: expiry)
         }
         cleanupTests()
+        migrateSchedule()
         await reconcile()
         UserDefaults.standard.removeObject(forKey: "pendingAlarmID")
         detectRoute()
         save()
+    }
+
+    /// v2: las alarmas llevan la acción del deslizador. Las antiguas se cancelan y se vuelven a crear.
+    private static let currentScheduleVersion = 2
+
+    private func migrateSchedule() {
+        guard state.scheduleVersion < Self.currentScheduleVersion, scheduler.isAuthorized else { return }
+        let now = Date()
+        for entry in state.scheduled where entry.fire > now {
+            scheduler.cancel(entry.akID)
+        }
+        state.scheduled.removeAll { $0.fire > now }
+        state.scheduleVersion = Self.currentScheduleVersion
+        log("Alarmas reprogramadas para la nueva versión")
     }
 
     func requestAlarmAuthorization() async {
@@ -300,7 +323,7 @@ final class AppModel {
         var kept: [ScheduledEntry] = []
         for entry in state.scheduled {
             if entry.fire > now {
-                if desiredKeys.contains(entry.key) {
+                if desiredKeys.contains(entry.key) || (entry.isExtra == true && extraStillWanted(entry)) {
                     kept.append(entry)
                 } else {
                     scheduler.cancel(entry.akID)
@@ -326,6 +349,12 @@ final class AppModel {
             }
         }
 
+        // Alarmas extra creadas mientras tanto (al deslizar "detener").
+        let keptIDs = Set(kept.map(\.akID))
+        kept.append(contentsOf: state.scheduled.filter {
+            $0.isExtra == true && $0.fire > now && !keptIDs.contains($0.akID) && extraStillWanted($0)
+        })
+
         // Alarmas de AlarmKit que ya no reconocemos.
         let known = Set(kept.map(\.akID))
         for id in scheduler.scheduledIDs() where !known.contains(id) {
@@ -340,6 +369,71 @@ final class AppModel {
         if added > 0 {
             log("Programadas \(added) alarmas nuevas (\(futureScheduledCount) en total)")
         }
+    }
+
+    /// Una alarma extra (por haber deslizado) sigue teniendo sentido mientras no hayas hecho el reto.
+    private func extraStillWanted(_ entry: ScheduledEntry) -> Bool {
+        if entry.kind == .check {
+            guard let group = entry.group else { return false }
+            return state.pendingChecks.contains { $0.id == group && !$0.confirmed }
+        }
+        return !isCompleted(entry.alarmID, entry.occurrence) && alarm(entry.alarmID) != nil
+    }
+
+    private func markerKey(_ entry: ScheduledEntry) -> String {
+        if entry.kind == .check, let group = entry.group { return "c|\(group.uuidString)" }
+        return key(entry.alarmID, entry.occurrence)
+    }
+
+    /// El botón "Hacer reto" de la alarma: a partir de aquí callarla no debe hacerla volver a sonar.
+    func markChallengeOpened(akID: UUID) {
+        guard let entry = state.scheduled.first(where: { $0.akID == akID }) else { return }
+        challengeOpened = (key: markerKey(entry), at: Date())
+    }
+
+    /// Se ha detenido una alarma con el deslizador. Si el reto sigue pendiente, vuelve a sonar en 30 s.
+    func alarmWasStopped(akID: UUID) async {
+        guard let entry = state.scheduled.first(where: { $0.akID == akID }) else { return }
+        let now = Date()
+        let marker = markerKey(entry)
+        if let opened = challengeOpened, opened.key == marker, now.timeIntervalSince(opened.at) < 600 { return }
+
+        switch entry.kind {
+        case .check:
+            guard let group = entry.group,
+                  let check = state.pendingChecks.first(where: { $0.id == group }),
+                  !check.confirmed,
+                  let last = check.fires.last,
+                  now < last.addingTimeInterval(120) else { return }
+        case .main, .backup:
+            guard !isCompleted(entry.alarmID, entry.occurrence),
+                  let alarm = self.alarm(entry.alarmID),
+                  now < entry.occurrence.addingTimeInterval(alarm.backupWindow) else { return }
+        }
+
+        let fire = now.addingTimeInterval(Self.reringDelay)
+        // Si ya hay algo programado para sonar en ese medio minuto, no hace falta otra.
+        let alreadySoon = state.scheduled.contains {
+            $0.alarmID == entry.alarmID && $0.occurrence == entry.occurrence && $0.group == entry.group
+                && $0.fire > now && $0.fire <= fire.addingTimeInterval(10)
+        }
+        log("Has deslizado para detener sin hacer el reto")
+        guard !alreadySoon else {
+            save()
+            return
+        }
+
+        var extra = ScheduledEntry(akID: UUID(), alarmID: entry.alarmID, kind: entry.kind == .check ? .check : .backup,
+                                   occurrence: entry.occurrence, fire: fire, group: entry.group, isExtra: true)
+        do {
+            extra.akID = try await scheduler.schedule(fire: fire, title: "¡Sin trampas! Haz el reto", kind: extra.kind)
+            state.scheduled.append(extra)
+            state.scheduled.sort { $0.fire < $1.fire }
+            log("Vuelvo a sonar a las \(Fmt.time(fire))")
+        } catch {
+            log("No pude volver a programar la alarma: \(error.localizedDescription)")
+        }
+        save()
     }
 
     private func title(for entry: ScheduledEntry) -> String {
@@ -384,6 +478,7 @@ final class AppModel {
 
     /// Calla lo que esté sonando de esta mañana (los respaldos futuros siguen).
     func beginSession(alarmID: UUID, occurrence: Date) {
+        challengeOpened = (key: key(alarmID, occurrence), at: Date())
         let now = Date().addingTimeInterval(1)
         for entry in state.scheduled where entry.alarmID == alarmID && entry.occurrence == occurrence && entry.fire <= now {
             scheduler.stop(entry.akID)
@@ -461,6 +556,7 @@ final class AppModel {
     }
 
     func startCheck(_ id: UUID) {
+        challengeOpened = (key: "c|\(id.uuidString)", at: Date())
         let now = Date().addingTimeInterval(1)
         for entry in state.scheduled where entry.group == id && entry.fire <= now {
             scheduler.stop(entry.akID)

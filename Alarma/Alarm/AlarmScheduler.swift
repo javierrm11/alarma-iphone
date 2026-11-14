@@ -62,7 +62,7 @@ final class AlarmScheduler {
         let configuration = AlarmManager.AlarmConfiguration<PipoAlarmMetadata>.alarm(
             schedule: .fixed(fire),
             attributes: attributes,
-            stopIntent: nil,
+            stopIntent: StopAlarmIntent(alarmID: id.uuidString),
             secondaryIntent: OpenChallengeIntent(alarmID: id.uuidString),
             sound: .default
         )
