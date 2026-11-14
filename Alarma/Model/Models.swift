@@ -196,12 +196,13 @@ struct PersistedState: Codable {
     var events: [String] = []
     /// Versión de cómo se programan las alarmas (si cambia, se reprograman todas).
     var scheduleVersion = 0
+    var customSound: CustomSound?
 
     init() {}
 
     enum CodingKeys: String, CodingKey {
         case alarms, scheduled, completedKeys, pendingChecks, records, savedCode
-        case photoThreshold, nightMessage, equipped, onboardingDone, events, scheduleVersion
+        case photoThreshold, nightMessage, equipped, onboardingDone, events, scheduleVersion, customSound
     }
 
     init(from decoder: Decoder) throws {
@@ -218,6 +219,7 @@ struct PersistedState: Codable {
         onboardingDone = (try? c.decodeIfPresent(Bool.self, forKey: .onboardingDone)) ?? false
         events = (try? c.decodeIfPresent([String].self, forKey: .events)) ?? []
         scheduleVersion = (try? c.decodeIfPresent(Int.self, forKey: .scheduleVersion)) ?? 0
+        customSound = try? c.decodeIfPresent(CustomSound.self, forKey: .customSound)
     }
 }
 

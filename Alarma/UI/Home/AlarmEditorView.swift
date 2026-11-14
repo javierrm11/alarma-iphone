@@ -227,7 +227,7 @@ struct AlarmEditorView: View {
                 .padding(.horizontal, 16).frame(minHeight: 60)
             }
             .pipoCard()
-            Text("Suena con el sonido de alarma del sistema.")
+            Text(model.state.customSound.map { "Suena con \"\($0.title)\" (\($0.rangeText)). Cámbialo en Ajustes." } ?? "Suena con el sonido de alarma del sistema. Puedes poner una canción en Ajustes.")
                 .font(Theme.body(.caption))
                 .foregroundStyle(Theme.muted)
         }

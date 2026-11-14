@@ -13,6 +13,7 @@ Diseño: estilo **Compañeros**, gama **Caramelo**, con **Pipo** como personaje.
 - **¿Sigues despierto?**: a los 5 y a los 10 minutos de completar el reto. Si no respondes, vuelve a sonar.
 - **Modo estricto**: en las 10 horas antes de que suene, apagar, borrar o cambiar la alarma pide 8 cuentas.
 - **Progreso**: racha, minutos hasta completar el reto, respaldos que sonaron y accesorios de Pipo que se desbloquean con la racha.
+- **Canción de alarma**: eliges una canción comprada de tu biblioteca de Música (o un archivo) y el trozo de 30 s arrastrando la onda, como en las historias de Instagram.
 - **Mensaje para mañana**: lo escribes por la noche y Pipo te lo enseña al completar el reto.
 - **Aviso de caducidad**: lee la fecha de la firma y te avisa 2 días antes.
 
@@ -57,6 +58,6 @@ project.yml     Definición del proyecto para XcodeGen
 
 - La pantalla de la alarma con el móvil bloqueado la dibuja iOS; el diseño de Pipo aparece al pulsar **Hacer reto** o al abrir la app.
 - Las alarmas principales se programan para los próximos 7 días y los respaldos para las próximas 26 horas. Se reprograman cada vez que abres la app, que es cada mañana al hacer el reto.
-- Suena con el sonido de alarma del sistema (para sonidos propios hay que añadir archivos `.caf`).
+- La canción solo sirve si es tuya (comprada en iTunes Store o un archivo); las de Apple Music o Spotify están protegidas. No está confirmado que iOS acepte canciones en las alarmas: si no, suena el sonido del sistema.
 - La tipografía es la redondeada del sistema (SF Rounded), parecida a Fredoka.
 - Nada impide borrar la app o apagar el móvil.

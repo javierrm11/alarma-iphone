@@ -39,7 +39,7 @@ final class AlarmScheduler {
     }
 
     /// Programa una alarma de fecha fija y devuelve su identificador.
-    func schedule(fire: Date, title: String, kind: EntryKind) async throws -> UUID {
+    func schedule(fire: Date, title: String, kind: EntryKind, sound soundName: String? = nil) async throws -> UUID {
         let id = UUID()
         let challengeButton = AlarmButton(
             text: "Hacer reto",
@@ -59,12 +59,14 @@ final class AlarmScheduler {
             metadata: PipoAlarmMetadata(kind: kind.rawValue),
             tintColor: Theme.primary
         )
+        // Canción elegida (en Library/Sounds) o el sonido de alarma del sistema.
+        let alertSound: AlertConfiguration.AlertSound = soundName.map { .named($0) } ?? .default
         let configuration = AlarmManager.AlarmConfiguration<PipoAlarmMetadata>.alarm(
             schedule: .fixed(fire),
             attributes: attributes,
             stopIntent: StopAlarmIntent(alarmID: id.uuidString),
             secondaryIntent: OpenChallengeIntent(alarmID: id.uuidString),
-            sound: .default
+            sound: alertSound
         )
         _ = try await manager.schedule(id: id, configuration: configuration)
         return id

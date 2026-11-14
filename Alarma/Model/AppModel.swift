@@ -96,6 +96,31 @@ final class AppModel {
         log("Alarmas reprogramadas para la nueva versión")
     }
 
+    // MARK: - Sonido
+
+    /// Nombre del archivo de la canción en Library/Sounds, o nil para el sonido del sistema.
+    var currentSoundName: String? {
+        guard let sound = state.customSound, SongService.clipExists(sound.fileName) else { return nil }
+        return sound.fileName
+    }
+
+    func setCustomSound(_ sound: CustomSound?) {
+        state.customSound = sound
+        log(sound.map { "Sonido de alarma: \($0.title) (\($0.rangeText))" } ?? "Sonido de alarma: el del sistema")
+        rescheduleAll()
+    }
+
+    /// Cancela todo lo futuro y lo vuelve a programar (p. ej. al cambiar el sonido).
+    func rescheduleAll() {
+        let now = Date()
+        for entry in state.scheduled where entry.fire > now {
+            scheduler.cancel(entry.akID)
+        }
+        state.scheduled.removeAll { $0.fire > now }
+        save()
+        Task { await reconcile() }
+    }
+
     func requestAlarmAuthorization() async {
         let ok = await scheduler.requestAuthorization()
         alarmAuth = scheduler.auth
@@ -340,7 +365,7 @@ final class AppModel {
         var added = 0
         for var entry in desired where !keptKeys.contains(entry.key) {
             do {
-                entry.akID = try await scheduler.schedule(fire: entry.fire, title: title(for: entry), kind: entry.kind)
+                entry.akID = try await scheduler.schedule(fire: entry.fire, title: title(for: entry), kind: entry.kind, sound: currentSoundName)
                 kept.append(entry)
                 added += 1
             } catch {
@@ -426,7 +451,7 @@ final class AppModel {
         var extra = ScheduledEntry(akID: UUID(), alarmID: entry.alarmID, kind: entry.kind == .check ? .check : .backup,
                                    occurrence: entry.occurrence, fire: fire, group: entry.group, isExtra: true)
         do {
-            extra.akID = try await scheduler.schedule(fire: fire, title: "¡Sin trampas! Haz el reto", kind: extra.kind)
+            extra.akID = try await scheduler.schedule(fire: fire, title: "¡Sin trampas! Haz el reto", kind: extra.kind, sound: currentSoundName)
             state.scheduled.append(extra)
             state.scheduled.sort { $0.fire < $1.fire }
             log("Vuelvo a sonar a las \(Fmt.time(fire))")

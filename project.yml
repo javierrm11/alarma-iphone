@@ -39,6 +39,7 @@ targets:
         UIUserInterfaceStyle: Light
         NSAlarmKitUsageDescription: Pipo necesita programar alarmas que suenen aunque el móvil esté en silencio o bloqueado.
         NSMotionUsageDescription: Pipo cuenta tus pasos para el reto de andar y comprobar que sigues despierto.
+        NSAppleMusicUsageDescription: Pipo usa tu biblioteca de Música para que elijas la canción de la alarma.
         NSCameraUsageDescription: Pipo usa la cámara para escanear el código del reto y comparar la foto de referencia.
     settings:
       base:

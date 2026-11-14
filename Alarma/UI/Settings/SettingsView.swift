@@ -10,6 +10,7 @@ struct SettingsView: View {
             ScrollView {
                 VStack(spacing: 16) {
                     ScreenTitle("Ajustes")
+                    SoundCard()
                     permissionsCard
                     signingCard
                     testCard
